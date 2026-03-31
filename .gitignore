@@ -1,0 +1,13 @@
+# Python
+producer/venv/
+__pycache__/
+*.pyc
+
+# Spark
+spark/*.jar
+
+# Postgres data
+postgres/data/
+
+# Environment files
+.env
