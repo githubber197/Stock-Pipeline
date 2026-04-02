@@ -32,9 +32,34 @@ services:
     command: >
       /opt/spark/bin/spark-submit
       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
+      --jars /opt/spark-apps/postgresql-42.6.0.jar
       /opt/spark-apps/spark_processor.py
     depends_on:
       - kafka
+      - postgres
+  
+  dashboard:
+    image: python:3.11-slim
+    container_name: dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    command: >
+      bash -c "pip install streamlit psycopg2-binary pandas plotly sqlalchemy &&
+               streamlit run app.py --server.port=8501 --server.address=0.0.0.0"
+    depends_on:
+      - postgres
+
+  kafka-setup:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-setup
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "/etc/kafka/create-topics.sh"]
+    volumes:
+      - ./kafka/create-topics.sh:/etc/kafka/create-topics.sh
 
   postgres:
     image: postgres:15
@@ -43,6 +68,7 @@ services:
       POSTGRES_USER: stockuser
       POSTGRES_PASSWORD: stockpass
       POSTGRES_DB: stockdb
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     volumes:
@@ -51,3 +77,5 @@ services:
 
 volumes:
   postgres_data:
+
+  

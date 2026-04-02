@@ -8,7 +8,7 @@ schema = StructType() \
     .add("price", DoubleType()) \
     .add("timestamp", StringType())
 
-# --- PostgreSQL config ---
+#PostgreSQL config 
 PG_URL = "jdbc:postgresql://postgres:5432/stockdb"
 PG_PROPERTIES = {
     "user": "stockuser",
@@ -20,8 +20,8 @@ def create_spark_session():
     return SparkSession.builder \
         .appName("StockMarketProcessor") \
         .config("spark.jars.packages",
-                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,"
-                "org.postgresql:postgresql:42.6.0") \
+                "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0") \
+        .config("spark.jars", "/opt/spark-apps/postgresql-42.6.0.jar") \
         .getOrCreate()
 
 def write_to_postgres(batch_df, batch_id):
@@ -41,7 +41,7 @@ def run():
     spark = create_spark_session()
     spark.sparkContext.setLogLevel("WARN")
 
-    # --- Read from Kafka ---
+    #Read from Kafka  
     raw_stream = spark.readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "kafka:9092") \
@@ -49,13 +49,13 @@ def run():
         .option("startingOffsets", "latest") \
         .load()
 
-    # --- Parse JSON ---
+    #Parse JSON messages 
     parsed = raw_stream \
         .selectExpr("CAST(value AS STRING) as json_str") \
         .select(from_json(col("json_str"), schema).alias("data")) \
         .select("data.*")
 
-    # --- Aggregate ---
+    #Aggregate 
     aggregated = parsed \
         .groupBy("symbol") \
         .agg(
@@ -63,7 +63,7 @@ def run():
             spark_max("price").alias("latest_price")
         )
 
-    # --- Write to PostgreSQL using foreachBatch ---
+    #Write to PostgreSQL using foreachBatch
     query = aggregated.writeStream \
         .outputMode("complete") \
         .foreachBatch(write_to_postgres) \

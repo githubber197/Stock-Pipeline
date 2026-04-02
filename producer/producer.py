@@ -4,24 +4,24 @@ from datetime import datetime
 from kafka import KafkaProducer
 import yfinance as yf
 
-# --- Configuration ---
+#Configuration
 KAFKA_BROKER = "localhost:9093"
 TOPIC = "stock-prices"
 STOCKS = ["AAPL", "GOOGL", "MSFT"]
-FETCH_INTERVAL = 10  # seconds
+FETCH_INTERVAL = 10 
 
 def create_producer():
     """Create and return a Kafka producer instance."""
     return KafkaProducer(
         bootstrap_servers=KAFKA_BROKER,
-        # Kafka messages are bytes, we serialize Python dicts to JSON bytes
+        #Kafka messages are bytes, we serialize Python dicts to JSON bytes
         value_serializer=lambda v: json.dumps(v).encode("utf-8")
     )
 
 def fetch_price(symbol):
     """Fetch the latest price for a stock symbol."""
     ticker = yf.Ticker(symbol)
-    # fast_info doesn't pull full history
+    #fast_info doesn't pull full history
     price = ticker.fast_info.last_price
     return round(price, 2)
 
@@ -49,7 +49,7 @@ def run():
             except Exception as e:
                 print(f"Error fetching {symbol}: {e}")
 
-        # Flush ensures buffered messages are actually sent
+        #Flush ensures buffered messages are actually sent
         producer.flush()
         time.sleep(FETCH_INTERVAL)
 
